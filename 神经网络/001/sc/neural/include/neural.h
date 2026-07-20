@@ -1,6 +1,8 @@
 #ifndef __NEURAL_H__
 #define __NEURAL_H__
 
+#include <stdbool.h>
+
 #include "activate.h"
 
 typedef struct 训练集_t
@@ -42,7 +44,8 @@ void 推理计算(神经网络_t* 网络,double* 输出结果, double* 输入参
 void 训练(神经网络_t* 网络, 训练集_t* 训练集, unsigned int 训练轮数);
 void 训练_带日志(神经网络_t* 网络, 训练集_t* 训练集, unsigned int 训练轮数, char* 日志文件路径);
 
-void 写入到文件(神经网络_t* 网络, char* 文件路径);
+void 写入到bin文件(神经网络_t* 网络, char* 文件路径, bool 是否为标准激励函数库);
+void 写入到txt文件(神经网络_t* 网络, char* 文件路径);
 
 void 销毁神经网络(神经网络_t* 网络);
 

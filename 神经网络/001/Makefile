@@ -27,7 +27,7 @@ endif
 CC = gcc
 CFLAGS ?= -Wall -Wextra \
 	$(CHARSET_FLAGS) \
-	-Isc/main \
+	-I$(MAIN_SRC_DIR) \
 	-Isc/neural/include \
 	-Isc/dataset/include
 LDFLAGS ?=
@@ -39,13 +39,16 @@ DATASET_BUILD_DIR  := build/dataset
 RESOURCE_BUILD_DIR := build/resource
 RUN_DIR            := run
 
-TARGET := $(MAIN_BUILD_DIR)/main$(EXEEXT)
+MAIN_NAME ?= 1551_rre_train_x_times_x
+MAIN_SRC_DIR := sc/main/$(MAIN_NAME)
+TARGET := $(MAIN_BUILD_DIR)/$(MAIN_NAME)$(EXEEXT)
+RUN_TARGET := $(RUN_DIR)/$(MAIN_NAME)$(EXEEXT)
 
-MAIN_SRCS    := $(wildcard sc/main/*.c)
+MAIN_SRCS    := $(wildcard $(MAIN_SRC_DIR)/*.c)
 NEURAL_SRCS  := $(wildcard sc/neural/src/*.c)
 DATASET_SRCS := $(wildcard sc/dataset/src/*.c)
 
-MAIN_OBJS    := $(patsubst sc/main/%.c,$(MAIN_BUILD_DIR)/%.o,$(MAIN_SRCS))
+MAIN_OBJS    := $(patsubst $(MAIN_SRC_DIR)/%.c,$(MAIN_BUILD_DIR)/%.o,$(MAIN_SRCS))
 NEURAL_OBJS  := $(patsubst sc/neural/src/%.c,$(NEURAL_BUILD_DIR)/%.o,$(NEURAL_SRCS))
 DATASET_OBJS := $(patsubst sc/dataset/src/%.c,$(DATASET_BUILD_DIR)/%.o,$(DATASET_SRCS))
 OBJS         := $(MAIN_OBJS) $(NEURAL_OBJS) $(DATASET_OBJS)
@@ -53,7 +56,7 @@ OBJS         := $(MAIN_OBJS) $(NEURAL_OBJS) $(DATASET_OBJS)
 .PHONY: all prepare run clean
 .SILENT:
 
-all: $(RUN_DIR)/main$(EXEEXT)
+all: $(RUN_TARGET)
 
 prepare:
 	$(call MKDIR,$(MAIN_BUILD_DIR))
@@ -62,7 +65,7 @@ prepare:
 	$(call MKDIR,$(RESOURCE_BUILD_DIR))
 	$(call MKDIR,$(RUN_DIR))
 
-$(MAIN_BUILD_DIR)/%.o: sc/main/%.c | prepare
+$(MAIN_BUILD_DIR)/%.o: $(MAIN_SRC_DIR)/%.c | prepare
 	$(UTF8_PREFIX) $(CC) $(CFLAGS) -c $< -o $@
 
 $(NEURAL_BUILD_DIR)/%.o: sc/neural/src/%.c | prepare
@@ -80,12 +83,12 @@ $(RESOURCE_BUILD_DIR)/randnum.bin: resource/randnum.bin | prepare
 $(RESOURCE_BUILD_DIR)/py_visualize.py: resource/py_visualize.py | prepare
 	$(call COPY_FILE,$<,$@)
 
-$(RUN_DIR)/main$(EXEEXT): $(TARGET) $(RESOURCE_BUILD_DIR)/randnum.bin $(RESOURCE_BUILD_DIR)/py_visualize.py | prepare
+$(RUN_TARGET): $(TARGET) $(RESOURCE_BUILD_DIR)/randnum.bin $(RESOURCE_BUILD_DIR)/py_visualize.py | prepare
 	$(call COPY_FILE,$(TARGET),$@)
 	$(COPY_RESOURCE)
 
 run: all
-	$(UTF8_PREFIX) ./$(RUN_DIR)/main$(EXEEXT)
+	$(UTF8_PREFIX) ./$(RUN_TARGET)
 
 clean:
 	$(call RM_RF,build)

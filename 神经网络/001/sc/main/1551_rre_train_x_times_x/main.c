@@ -91,43 +91,6 @@ static void 随机初始化权重(神经网络_t* 神经网络)
 	}
 }
 
-static int 写出权重文本(神经网络_t* 神经网络, const char* 文件路径)
-{
-	FILE* 文件 = fopen(文件路径, "w");
-	if (文件 == NULL)
-	{
-		return 0;
-	}
-
-	for (unsigned int i = 0; i < (*神经网络).层数; i++)
-	{
-		单层神经网络_t* 单层 = &(*神经网络).所有层[i];
-		unsigned int 行长度 = (*单层).传入参数个数 + 1;
-		fprintf(文件, "layer %u:\n", i);
-		fprintf(文件, "    in: %u\n", (*单层).传入参数个数);
-		fprintf(文件, "    out: %u\n", (*单层).传出参数个数);
-		fprintf(文件, "    w:\n");
-		for (unsigned int 行 = 0; 行 < (*单层).传出参数个数; 行++)
-		{
-			fprintf(文件, "        ");
-			for (unsigned int 列 = 0; 列 < 行长度; 列++)
-			{
-				fprintf(文件, "%10.3e", (*单层).变换矩阵[行 * 行长度 + 列]);
-				if (列 + 1 < 行长度)
-				{
-					fprintf(文件, " ");
-				}
-			}
-			fprintf(文件, "\n");
-		}
-		fprintf(文件, "    actvate: %s\n", 获取激活函数名称((*单层).激励函数));
-		fprintf(文件, "\n");
-	}
-
-	fclose(文件);
-	return 1;
-}
-
 static int 写出推理结果(神经网络_t* 神经网络, 数据集_t* 推理集, const char* 文件路径)
 {
 	FILE* 文件 = fopen(文件路径, "w");
@@ -184,15 +147,12 @@ int main()
 	join_path(权重文本路径, sizeof(权重文本路径), 输出目录, "result_weight_121_x_times_x.txt");
 	join_path(权重原始数据路径, sizeof(权重原始数据路径), 输出目录, "result_weight_121_x_times_x_raw.bin");
 	join_path(推理结果路径, sizeof(推理结果路径), 输出目录, "result_predict_121_x_times_x.csv");
-	join_path(训练日志路径, sizeof(训练日志路径), 输出目录, "train.txt");
+	join_path(训练日志路径, sizeof(训练日志路径), 输出目录, "train.csv");
 
 	训练_带日志(神经网络, (训练集_t*)训练集, 1024 * 1024, 训练日志路径);
 
-	if (!写出权重文本(神经网络, 权重文本路径))
-	{
-		puts("权重文本写出失败");
-	}
-	写入到文件(神经网络, 权重原始数据路径);
+	写入到txt文件(神经网络, 权重文本路径);
+	写入到bin文件(神经网络, 权重原始数据路径, !判断是否有非标激励函数());
 	if (!写出推理结果(神经网络, 推理集, 推理结果路径))
 	{
 		puts("推理结果写出失败");

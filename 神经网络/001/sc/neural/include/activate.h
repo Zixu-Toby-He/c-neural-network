@@ -1,6 +1,8 @@
 #ifndef __ACTIVATE_H__
 #define __ACTIVATE_H__
 
+#include <stdbool.h>
+
 typedef void (*激励函数_t)(double* 结果, double* 参数, unsigned int 参数个数, void* 调节参数);
 
 // x
@@ -28,6 +30,11 @@ void leakyrelu激励函数(double* 结果, double* 参数, unsigned int 参数�
 // Softmax归一化函数：{a_n} -> { exp(a_n) / sum(exp(a_n)) }
 void softmax归一化函数(double* 结果, double* 参数, unsigned int 参数个数, void* 调节参数);
 
+//  激励函数的保存与输出
+bool        判断是否有非标激励函数(void);
+void        新引入激励函数(激励函数_t 激励函数, char* 函数名称, char* 短名);
 const char* 获取激活函数名称(激励函数_t 激励函数);
+const char* 获取激活函数短名(激励函数_t 激励函数);
+
 
 #endif

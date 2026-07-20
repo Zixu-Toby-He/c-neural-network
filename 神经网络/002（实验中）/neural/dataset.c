@@ -5,6 +5,7 @@
 #include "dataset.h"
 
 #define printDoubleArray(_aRrAy,length)               {printf(#_aRrAy"：[%i]\n[ ", length);for(size_t __CoUnTiNg=0;__CoUnTiNg<length;__CoUnTiNg++){printf("%g, ",(double)_aRrAy[__CoUnTiNg]);};puts("]");}
+
 数据集_t* 数据集_新建(unsigned int 自变量单组长度, unsigned int 函数值单组长度, unsigned int 结果集数量)
 {
 	unsigned int 自变量总长度 = 结果集数量 * 自变量单组长度;
@@ -14,9 +15,12 @@
 	{
 		return NULL;
 	}
-	数据集_t* 数据集 = (数据集_t*)对象内存池;
-	(*数据集).自变量数据集 = (double*)(对象内存池 + sizeof(数据集_t));
-	(*数据集).函数值数据集 = (double*)(对象内存池 + sizeof(数据集_t) + 自变量总长度 * sizeof(double));
+	数据集_t* 数据集         = (数据集_t*)对象内存池;
+	(*数据集).结果集数量     = 结果集数量;
+	(*数据集).自变量单组长度 = 自变量单组长度;
+	(*数据集).函数值单组长度 = 函数值单组长度;
+	(*数据集).自变量数据集   = (double*)(对象内存池 + sizeof(数据集_t));
+	(*数据集).函数值数据集   = (double*)(对象内存池 + sizeof(数据集_t) + 自变量总长度 * sizeof(double));
 	return 数据集;
 }
 
