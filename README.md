@@ -136,6 +136,9 @@ mingw32-make.exe run-2554_sssr_quadrant
 
 该示例输入二维坐标 `(x, y)`，输出四个象限类别的概率分布。
 
+运行后会在 `run/<platform>/output/result_predict_2554_sssr_quadrant.csv` 中生成 `-128..128` 的 257x257 网格推理结果。  
+可视化脚本位于 `神经网络/resource/2554_sssr_quadrant/visualize_meshgrid_4_out.py`，会读取该 CSV 并输出四个子图的 PNG。
+
 Linux 下运行示例时，将上述命令中的 `mingw32-make.exe` 替换为 `make` 即可，例如 `make run-grad_down`。
 
 ## 示例输出

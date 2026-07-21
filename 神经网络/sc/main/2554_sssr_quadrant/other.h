@@ -3,10 +3,10 @@
 
 #include "dataset.h"
 
-#define 坐标下限 (-100)
-#define 坐标上限 (100)
+#define 坐标下限 (-128)
+#define 坐标上限 (128)
 #define 训练步长 20
-#define 推理步长 5
+#define 推理步长 1
 
 #define 训练格点数量 (((坐标上限) - (坐标下限)) / 训练步长 + 1)
 #define 推理格点数量 (((坐标上限) - (坐标下限)) / 推理步长 + 1)

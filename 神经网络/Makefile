@@ -1,14 +1,16 @@
 # 跨平台命令
 ifeq ($(OS),Windows_NT)
 
-SHELL           := powershell.exe
-.SHELLFLAGS     := -NoProfile -ExecutionPolicy Bypass -Command
-EXEEXT          := .exe
-NEURAL_LIB_NAME := neural.dll
-PLATFORM_NAME   := windows
+SHELL            := powershell.exe
+.SHELLFLAGS      := -NoProfile -ExecutionPolicy Bypass -Command
+EXEEXT           := .exe
+NEURAL_LIB_NAME  := neural.dll
+PLATFORM_NAME    := windows
 DEFAULT_CC       := gcc
 UTF8_PREFIX      = chcp 65001 > $$null; $$OutputEncoding = [System.Text.UTF8Encoding]::new(); [Console]::OutputEncoding = $$OutputEncoding;
 CHECK_COMPILER   =
+UTF8_CHARSET_FLAGS = -finput-charset=UTF-8 -fexec-charset=UTF-8
+DIAGNOSTICS_CHARSET_FLAG =
 MKDIR            = $(UTF8_PREFIX) New-Item -ItemType Directory -Force $(subst /,\,$(1)) | Out-Null
 COPY_DIR         = $(UTF8_PREFIX) if (Test-Path "$(subst /,\,$(1))") { Copy-Item -Recurse -Force -ErrorAction SilentlyContinue "$(subst /,\,$(1))\*" "$(subst /,\,$(2))" }
 RM_RF            = $(UTF8_PREFIX) if (Test-Path $(subst /,\,$(1))) { Remove-Item -Recurse -Force $(subst /,\,$(1)) }
@@ -23,6 +25,7 @@ LOCALE          ?= C.UTF-8
 DEFAULT_CC       := $(or $(firstword $(foreach candidate,gcc-14 gcc-13 gcc-12 gcc-11 gcc-10 gcc,$(shell command -v $(candidate) 2>/dev/null))),gcc)
 UTF8_PREFIX      = env LANG=$(LOCALE) LC_ALL=$(LOCALE)
 CHECK_COMPILER   = printf 'int 中文标识符 = 0; int main(void){return 中文标识符;}\n' | $(CC) $(STD_FLAGS) $(UTF8_CHARSET_FLAGS) -x c - -c -o /dev/null >/dev/null 2>&1 || { echo "$(CC) does not support UTF-8 Chinese identifiers in C. Please install GCC 10+ or run make CC=/path/to/newer-gcc."; exit 1; }
+UTF8_CHARSET_FLAGS = -finput-charset=UTF-8 -fexec-charset=UTF-8
 export LANG      := $(LOCALE)
 export LC_ALL    := $(LOCALE)
 MKDIR            = mkdir -p $(1)
@@ -36,11 +39,18 @@ ifeq ($(origin CC),default)
 CC := $(DEFAULT_CC)
 endif
 
-cc-option = $(shell printf 'int main(void){return 0;}\n' | $(CC) $(1) -x c - -c -o /dev/null >/dev/null 2>&1 && printf '%s' '$(1)')
 OPT_FLAGS        = -O2
 STD_FLAGS        = -std=gnu11 -fextended-identifiers
-UTF8_CHARSET_FLAGS = -finput-charset=UTF-8 -fexec-charset=UTF-8
+
+ifeq ($(OS),Windows_NT)
+ifeq ($(ENABLE_DIAGNOSTICS_CHARSET),1)
+DIAGNOSTICS_CHARSET_FLAG = -fdiagnostics-charset=UTF-8
+endif
+else
+cc-option = $(shell printf 'int main(void){return 0;}\n' | $(CC) $(1) -x c - -c -o /dev/null >/dev/null 2>&1 && printf '%s' '$(1)')
 DIAGNOSTICS_CHARSET_FLAG := $(call cc-option,-fdiagnostics-charset=UTF-8)
+endif
+
 CHARSET_FLAGS    = $(UTF8_CHARSET_FLAGS) $(DIAGNOSTICS_CHARSET_FLAG)
 BASE_CFLAGS ?= -Wall -Wextra \
 	$(STD_FLAGS) $(CHARSET_FLAGS) $(OPT_FLAGS)
