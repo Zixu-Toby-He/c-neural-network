@@ -5,8 +5,10 @@ SHELL           := powershell.exe
 .SHELLFLAGS     := -NoProfile -ExecutionPolicy Bypass -Command
 EXEEXT          := .exe
 NEURAL_LIB_NAME := neural.dll
+PLATFORM_NAME   := windows
+DEFAULT_CC       := gcc
 UTF8_PREFIX      = chcp 65001 > $$null; $$OutputEncoding = [System.Text.UTF8Encoding]::new(); [Console]::OutputEncoding = $$OutputEncoding;
-CHARSET_FLAGS    = -finput-charset=UTF-8 -fexec-charset=UTF-8
+CHECK_COMPILER   =
 MKDIR            = $(UTF8_PREFIX) New-Item -ItemType Directory -Force $(subst /,\,$(1)) | Out-Null
 COPY_DIR         = $(UTF8_PREFIX) if (Test-Path "$(subst /,\,$(1))") { Copy-Item -Recurse -Force -ErrorAction SilentlyContinue "$(subst /,\,$(1))\*" "$(subst /,\,$(2))" }
 RM_RF            = $(UTF8_PREFIX) if (Test-Path $(subst /,\,$(1))) { Remove-Item -Recurse -Force $(subst /,\,$(1)) }
@@ -16,8 +18,13 @@ else
 SHELL           := bash
 EXEEXT          :=
 NEURAL_LIB_NAME := libneural.so
-UTF8_PREFIX      =
-CHARSET_FLAGS    = -finput-charset=UTF-8 -fexec-charset=UTF-8
+PLATFORM_NAME   := linux
+LOCALE          ?= C.UTF-8
+DEFAULT_CC       := $(or $(firstword $(foreach candidate,gcc-14 gcc-13 gcc-12 gcc-11 gcc-10 gcc,$(shell command -v $(candidate) 2>/dev/null))),gcc)
+UTF8_PREFIX      = env LANG=$(LOCALE) LC_ALL=$(LOCALE)
+CHECK_COMPILER   = printf 'int 中文标识符 = 0; int main(void){return 中文标识符;}\n' | $(CC) $(STD_FLAGS) $(UTF8_CHARSET_FLAGS) -x c - -c -o /dev/null >/dev/null 2>&1 || { echo "$(CC) does not support UTF-8 Chinese identifiers in C. Please install GCC 10+ or run make CC=/path/to/newer-gcc."; exit 1; }
+export LANG      := $(LOCALE)
+export LC_ALL    := $(LOCALE)
 MKDIR            = mkdir -p $(1)
 COPY_DIR         = if [ -d "$(1)" ]; then cp -R -f "$(1)/." "$(2)/"; fi
 RM_RF            = rm -rf $(1)
@@ -25,16 +32,25 @@ RM_RF            = rm -rf $(1)
 endif
 
 # 编译器与编译选项
-CC = gcc
+ifeq ($(origin CC),default)
+CC := $(DEFAULT_CC)
+endif
+
+cc-option = $(shell printf 'int main(void){return 0;}\n' | $(CC) $(1) -x c - -c -o /dev/null >/dev/null 2>&1 && printf '%s' '$(1)')
 OPT_FLAGS        = -O2
+STD_FLAGS        = -std=gnu11 -fextended-identifiers
+UTF8_CHARSET_FLAGS = -finput-charset=UTF-8 -fexec-charset=UTF-8
+DIAGNOSTICS_CHARSET_FLAG := $(call cc-option,-fdiagnostics-charset=UTF-8)
+CHARSET_FLAGS    = $(UTF8_CHARSET_FLAGS) $(DIAGNOSTICS_CHARSET_FLAG)
 BASE_CFLAGS ?= -Wall -Wextra \
-	$(CHARSET_FLAGS) $(OPT_FLAGS)
+	$(STD_FLAGS) $(CHARSET_FLAGS) $(OPT_FLAGS)
 LDFLAGS ?=
 LDLIBS  ?= -lm
 
-NEURAL_BUILD_DIR := build/neural
-MAIN_BUILD_ROOT  := build/main
-RUN_ROOT_DIR     := run
+BUILD_ROOT       := build/$(PLATFORM_NAME)
+NEURAL_BUILD_DIR := $(BUILD_ROOT)/neural
+MAIN_BUILD_ROOT  := $(BUILD_ROOT)/main
+RUN_ROOT_DIR     := run/$(PLATFORM_NAME)
 
 MAIN_NAMES := $(notdir $(patsubst %/,%,$(wildcard sc/main/*/)))
 
@@ -58,14 +74,17 @@ MAIN_NEURAL_LIB   := -L$(RUN_ROOT_DIR) -lneural
 
 endif
 
-.PHONY: all neural prepare_neural clean run $(MAIN_NAMES) $(addprefix run-,$(MAIN_NAMES))
+.PHONY: all neural check-compiler prepare_neural clean run env-info $(MAIN_NAMES) $(addprefix run-,$(MAIN_NAMES))
 .SILENT:
 
 all: neural $(MAIN_NAMES)
 
 neural: $(NEURAL_TARGET)
 
-prepare_neural:
+check-compiler:
+	$(UTF8_PREFIX) $(CHECK_COMPILER)
+
+prepare_neural: check-compiler
 	$(call MKDIR,$(NEURAL_BUILD_DIR))
 	$(call MKDIR,$(RUN_ROOT_DIR))
 
@@ -100,6 +119,18 @@ endef
 $(foreach MAIN,$(MAIN_NAMES),$(eval $(call DEFINE_MAIN_PROJECT,$(MAIN))))
 
 run: run-$(firstword $(MAIN_NAMES))
+
+env-info:
+	@echo "OS=$(OS)"
+	@echo "PLATFORM_NAME=$(PLATFORM_NAME)"
+	@echo "SHELL=$(SHELL)"
+	@echo "CC=$(CC)"
+	@echo "LOCALE=$(LOCALE)"
+	@echo "BASE_CFLAGS=$(BASE_CFLAGS)"
+	@echo "NEURAL_BUILD_DIR=$(NEURAL_BUILD_DIR)"
+	@echo "RUN_ROOT_DIR=$(RUN_ROOT_DIR)"
+	@$(UTF8_PREFIX) locale
+	@$(UTF8_PREFIX) $(CC) --version | head -n 1
 
 clean:
 	$(call RM_RF,build)
